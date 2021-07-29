@@ -1,5 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cimilo_sheeg/screens/search.dart';
+import 'package:cimilo_sheeg/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:weather/weather.dart';
 
 class HomeScreen extends StatefulWidget {
   HomeScreen({Key? key, required this.title}) : super(key: key);
@@ -11,12 +16,23 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  void getMyLocation() async {
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
+  WeatherFactory openWeather =
+      WeatherFactory('a2db19caba495fd4db81fc39f35c01ec');
 
-    print('Latitude: ${position.latitude}, Longitude: ${position.longitude}');
+  Weather? weather;
+
+  bool isLoading = false;
+
+  Future<Position> getMyLocation() async =>
+      await Geolocator.getCurrentPosition();
+
+  Future<void> getWeather() async {
+    setState(() => isLoading = !isLoading);
+    Position position = await getMyLocation();
+    weather = await openWeather.currentWeatherByLocation(
+        position.latitude, position.longitude);
+
+    setState(() => isLoading = !isLoading);
   }
 
   @override
@@ -29,80 +45,40 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () => getMyLocation(),
+            onPressed: () => getWeather(),
             icon: Icon(Icons.pin_drop_outlined),
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SearchScreen(),
+              ),
+            ),
             icon: Icon(Icons.search),
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: NetworkImage(
-              'https://i.pinimg.com/originals/7e/b6/6d/7eb66d739c10bc4b32fc8fd45628901f.png',
-            ),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              Colors.black.withOpacity(0.8),
-              BlendMode.darken,
+      body: ModalProgressHUD(
+        inAsyncCall: isLoading,
+        child: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: CachedNetworkImageProvider(
+                'https://i.pinimg.com/originals/7e/b6/6d/7eb66d739c10bc4b32fc8fd45628901f.png',
+              ),
+              fit: BoxFit.cover,
+              colorFilter: ColorFilter.mode(
+                Colors.black.withOpacity(0.8),
+                BlendMode.darken,
+              ),
             ),
           ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  text: 'Mogadishu, SO',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w300,
-                    height: 1.5,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: '\nUpdated: 20:19 EAT, 25/7/2021',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                    TextSpan(
-                      text: '\n\n20.9',
-                      style: TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    TextSpan(
-                      text: '°C',
-                      style: TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w100,
-                      ),
-                    ),
-                    TextSpan(
-                      text: '\nLight Rain',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w300,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
+          child: weather == null
+              ? WelcomeView()
+              : WeatherView(
+                  weather: weather!,
                 ),
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: Icon(Icons.refresh),
-              ),
-            ],
-          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -127,43 +103,6 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         tooltip: 'Increment',
         child: Icon(Icons.info_outline),
-      ),
-    );
-  }
-}
-
-class WelcomeView extends StatelessWidget {
-  const WelcomeView({
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              text: 'Kusoo dhawaaw ',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w200,
-                height: 1.5,
-              ),
-              children: [
-                TextSpan(
-                  text: '\nCimiloSheeg App⛅',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
